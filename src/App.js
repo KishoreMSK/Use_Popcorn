@@ -46,6 +46,7 @@ const tempWatchedData = [
     userRating: 9,
   },
 ];
+const key = ''
 
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
@@ -78,7 +79,47 @@ function NumResults(){
      </p>
   )
 }
-const key = ''
+
+function MovieDetails({selectedId}){
+  const [movie,setMovie] = useState({})
+  useEffect(function () {
+    //used to handle multiple api calls at a time by cancelling all the calls except the last call
+    //add {signal : controller.signal} after the fetch api call
+    const controller = new AbortController() 
+
+    function findMovies() {
+      const item = tempWatchedData.find((movie) => movie.imdbID === selectedId);
+      setMovie(item);
+    }
+    findMovies();
+  });
+  useEffect(function(){
+    if(!movie.Title) return
+    document.title = `Movie ${movie.Title}`
+    //cleanup function to clear the value of state when the component in unmounted
+    return () => {
+      document.title = 'usepopcorn'  
+    }
+  }, [movie?.Title]);
+  return(
+    <div className="details">
+      <header>
+        <img src={movie?.Poster} alt={`Poster of ${movie?.Title} movie`}/>
+        <div className="details-overview">
+            <p>{movie?.Title}</p>
+            <p>Realesed on: {movie?.Year}</p>
+            <p>Runtime: {movie?.runtime}</p>
+            <span>⭐{movie?.imdbRating} IMDB Rating</span>
+        </div>
+      </header>
+      <section>
+        <p>Plot</p>
+      </section>
+       
+    </div>
+  )
+}
+
 function Main({query, setQuery}){
   const [movies, setMovies] = useState(tempMovieData);
   const [watched, setWatched] = useState(tempWatchedData);
@@ -86,11 +127,17 @@ function Main({query, setQuery}){
   const [isOpen2, setIsOpen2] = useState(true);
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const[selectedId, setSelectedId] = useState(null)
 
   const avgImdbRating = average(watched.map((movie) => movie.imdbRating));
   const avgUserRating = average(watched.map((movie) => movie.userRating));
   const avgRuntime = average(watched.map((movie) => movie.runtime));
   const yourkey = '19014'
+
+  function handleClick(id){
+    console.log(id)
+    setSelectedId(selectedId => selectedId === id ? null : id)
+  }
   useEffect(function() {
     async function fetchMovies(){
       try {
@@ -104,7 +151,7 @@ function Main({query, setQuery}){
         console.log(data);
         if(data.Response === 'False')
           throw new Error('Movie not found')
-        setMovies(data.Search)
+        // setMovies(data.Search)
 
       } catch (error) {
         setError(error.message)
@@ -114,7 +161,7 @@ function Main({query, setQuery}){
       
     }
     if(query.length < 3){
-      setMovies([])
+      // setMovies([])
       setError("")
       return
     }
@@ -132,9 +179,9 @@ function Main({query, setQuery}){
             {isOpen1 ? "–" : "+"}
           </button>
           {isOpen1 && (
-            <ul className="list">
+            <ul className="list list-movies">
               {movies?.map((movie) => (
-                <li key={movie.imdbID}>
+                <li key={movie.imdbID} onClick={() => handleClick(movie.imdbID)}>
                   <img src={movie.Poster} alt={`${movie.Title} poster`} />
                   <h3>{movie.Title}</h3>
                   <div>
@@ -156,7 +203,7 @@ function Main({query, setQuery}){
           >
             {isOpen2 ? "–" : "+"}
           </button>
-          {isOpen2 && (
+          {isOpen2 && selectedId ? <MovieDetails selectedId={selectedId}/> : (
             <>
               <div className="summary">
                 <h2>Movies you watched</h2>
